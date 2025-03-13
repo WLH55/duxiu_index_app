@@ -54,8 +54,7 @@
 1. **克隆仓库**
 
 ```bash
-git clone https://github.com/yourusername/outstanding-index.git
-cd outstanding-index
+git clone https://github.com/WLH55/duxiu_index_app.git
 ```
 
 2. **创建并激活虚拟环境** (可选但推荐)
