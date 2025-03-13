@@ -1,0 +1,20 @@
+[
+  {
+    "date": "2024-12",
+    "salary": 7697.41,
+    "living_cost": 3925.97,
+    "index": 1.96
+  },
+  {
+    "date": "2025-01",
+    "salary": 7464.64,
+    "living_cost": 4986.25,
+    "index": 1.5
+  },
+  {
+    "date": "2025-02",
+    "salary": 7316.7,
+    "living_cost": 2739.71,
+    "index": 2.67
+  }
+]

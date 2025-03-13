@@ -1,0 +1,81 @@
+body {
+    background-color: #f8f9fa;
+    font-family: 'Microsoft YaHei', 'Segoe UI', sans-serif;
+}
+
+.container {
+    max-width: 1000px;
+}
+
+.card {
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+.card-header {
+    background-color: #f1f8ff;
+    border-bottom: 1px solid #e3f2fd;
+}
+
+.btn-primary {
+    background-color: #4CAF50;
+    border-color: #4CAF50;
+}
+
+.btn-primary:hover {
+    background-color: #388E3C;
+    border-color: #388E3C;
+}
+
+.btn-danger {
+    background-color: #FF5252;
+    border-color: #FF5252;
+}
+
+.btn-danger:hover {
+    background-color: #D32F2F;
+    border-color: #D32F2F;
+}
+
+#chartContainer {
+    min-height: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.chart-placeholder {
+    color: #6c757d;
+    font-style: italic;
+}
+
+#chartImage {
+    max-width: 100%;
+    height: auto;
+}
+
+.highlight-row {
+    background-color: #e8f5e9 !important;
+}
+
+.index-good {
+    color: #2E7D32;
+    font-weight: bold;
+}
+
+.index-medium {
+    color: #F57F17;
+    font-weight: bold;
+}
+
+.index-poor {
+    color: #C62828;
+    font-weight: bold;
+}
+
+@media (max-width: 768px) {
+    .table-responsive {
+        margin-bottom: 0;
+    }
+}
