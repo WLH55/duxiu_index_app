@@ -1,0 +1,9 @@
+[
+  {
+    "id": "1",
+    "username": "wlh",
+    "email": "210920@qq.com",
+    "password_hash": "scrypt:32768:8:1$rFZCwZFIuz17qeRy$53d16ea0f3973fe2579aec8e5d0e55326ddd66ac381b26984035da84f2a308dc8280486451092b58bef96c271190bd5b530b675c7ab95e63ff47dc1a81d74ad4",
+    "created_at": "2025-03-14T09:52:49.469989"
+  }
+]

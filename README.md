@@ -17,6 +17,8 @@
 
 ## 功能特性
 
+- 用户注册和登录系统
+- 每个用户独立的数据存储空间
 - 记录月度收入和生活成本
 - 自动计算独秀指数
 - 生成直观的趋势图表
@@ -38,6 +40,8 @@
 ## 技术栈
 
 - 后端: Python Flask
+- 用户认证: Flask-Login
+- 表单处理: Flask-WTF, WTForms
 - 前端: HTML, CSS, JavaScript, Bootstrap 5
 - 数据可视化: Matplotlib
 - 数据存储: JSON文件
@@ -95,15 +99,73 @@ http://127.0.0.1:5000
 
 ## 使用说明
 
-1. 在表单中输入年月、月工资和生活成本
-2. 点击"添加/更新"按钮保存数据
-3. 查看自动生成的独秀指数趋势图
-4. 可以点击"下载趋势图"按钮保存图表
-5. 在历史数据表格中查看和管理已记录的数据
+1. **用户注册与登录**
+   - 首次使用时，点击"注册"创建新账户
+   - 使用您的用户名和密码登录
+   - 每个用户的数据相互独立，不会相互影响
+
+2. **记录与查看数据**
+   - 在表单中输入年月、月工资和生活成本
+   - 点击"添加/更新"按钮保存数据
+   - 查看自动生成的独秀指数趋势图
+   - 可以点击"下载趋势图"按钮保存图表
+   - 在历史数据表格中查看和管理已记录的数据
 
 ## 数据存储
 
-所有数据保存在`duxiu_index_app/data.json`文件中，您可以备份此文件以保留您的历史记录。
+所有数据保存在应用的`data`目录中：
+- 用户信息存储在`data/users.json`文件中
+- 独秀指数记录存储在`data/records.json`文件中
+
+您可以备份这些文件以保留所有用户的历史记录。
+
+## 部署到服务器
+
+要将应用部署到Ubuntu服务器，请参考以下步骤：
+
+1. **准备服务器环境**
+```bash
+sudo apt update
+sudo apt upgrade -y
+sudo apt install -y python3 python3-pip python3-venv git nginx
+```
+
+2. **获取代码并设置**
+```bash
+cd /opt
+sudo git clone https://github.com/您的用户名/duxiu_index_app.git
+sudo chown -R ubuntu:ubuntu /opt/duxiu_index_app
+cd duxiu_index_app
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+pip install gunicorn
+```
+
+3. **设置Gunicorn服务**
+```bash
+sudo nano /etc/systemd/system/duxiu.service
+```
+
+添加以下内容（替换用户名）：
+```
+[Unit]
+Description=Gunicorn instance to serve duxiu_index_app
+After=network.target
+
+[Service]
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/duxiu_index_app
+Environment="PATH=/opt/duxiu_index_app/venv/bin"
+ExecStart=/opt/duxiu_index_app/venv/bin/gunicorn --workers 3 --bind 0.0.0.0:5000 app:app
+
+[Install]
+WantedBy=multi-user.target
+```
+
+4. **配置Nginx反向代理**
+详细部署说明请参考文档中的部署章节。
 
 ## 许可证
 

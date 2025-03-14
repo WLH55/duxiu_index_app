@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session
 import os
 import json
 from datetime import datetime
@@ -8,40 +8,110 @@ import matplotlib.pyplot as plt
 import numpy as np
 import base64
 from io import BytesIO
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
+from forms import RegistrationForm, LoginForm
+from models import User, UserStore, DuxiuRecord, DuxiuStore
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'duxiu-index-secret'
 
-# 数据存储路径
-DATA_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data.json')
+# 初始化LoginManager
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+login_manager.login_message = '请先登录以访问此页面'
+login_manager.login_message_category = 'warning'
 
-# 初始化数据文件
-def init_data_file():
-    if not os.path.exists(DATA_FILE):
-        with open(DATA_FILE, 'w', encoding='utf-8') as f:
-            json.dump([], f)
+# 数据文件路径
+DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
+os.makedirs(DATA_DIR, exist_ok=True)
+USERS_FILE = os.path.join(DATA_DIR, 'users.json')
+DATA_FILE = os.path.join(DATA_DIR, 'records.json')
 
-# 加载数据
-def load_data():
-    init_data_file()
-    try:
-        with open(DATA_FILE, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except:
-        return []
+# 初始化用户存储和数据存储
+user_store = UserStore(USERS_FILE)
+duxiu_store = DuxiuStore(DATA_FILE)
 
-# 保存数据
-def save_data(data):
-    with open(DATA_FILE, 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+@login_manager.user_loader
+def load_user(user_id):
+    return user_store.get_user_by_id(user_id)
+
+# 主页
+@app.route('/')
+def index():
+    if not current_user.is_authenticated:
+        return redirect(url_for('login'))
+    return render_template('index.html')
+
+# 用户注册
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    
+    form = RegistrationForm()
+    if form.validate_on_submit():
+        username = form.username.data
+        email = form.email.data
+        password = form.password.data
+        
+        success, result = user_store.add_user(username, email, password)
+        
+        if success:
+            flash('注册成功，现在您可以登录了！', 'success')
+            return redirect(url_for('login'))
+        else:
+            flash(f'注册失败: {result}', 'danger')
+    
+    return render_template('register.html', form=form)
+
+# 用户登录
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    
+    form = LoginForm()
+    if form.validate_on_submit():
+        username = form.username.data
+        password = form.password.data
+        
+        user = user_store.get_user_by_username(username)
+        
+        if user and user.check_password(password):
+            login_user(user)
+            flash('登录成功！', 'success')
+            next_page = request.args.get('next')
+            return redirect(next_page or url_for('index'))
+        else:
+            flash('登录失败，请检查用户名和密码', 'danger')
+    
+    return render_template('login.html', form=form)
+
+# 用户注销
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    flash('您已成功注销', 'success')
+    return redirect(url_for('login'))
 
 # 生成图表
 def generate_chart(data):
-    if not data:
+    if not data or len(data) == 0:
         return None
     
     # 准备数据
+    # 确保日期格式统一且可以正确排序
+    for item in data:
+        if not isinstance(item['date'], str):
+            item['date'] = str(item['date'])
+    
+    # 按日期排序数据
     sorted_data = sorted(data, key=lambda x: x['date'])
+    
+    # 提取日期和指数值
     dates = [item['date'] for item in sorted_data]
     indices = [item['index'] for item in sorted_data]
     
@@ -86,14 +156,9 @@ def generate_chart(data):
     
     return base64.b64encode(image_png).decode('utf-8')
 
-@app.route('/')
-def index():
-    return render_template('index.html')
-
 @app.route('/add_record', methods=['POST'])
+@login_required
 def add_record():
-    data = load_data()
-    
     # 获取表单数据
     salary = float(request.form.get('salary', 0))
     living_cost = float(request.form.get('living_cost', 0))
@@ -105,65 +170,56 @@ def add_record():
     else:
         duxiu_index = 0
     
-    # 创建记录
-    record = {
-        'date': date,
-        'salary': salary,
-        'living_cost': living_cost,
-        'index': duxiu_index
-    }
+    # 添加记录到用户的数据中
+    duxiu_store.add_or_update_record(date, salary, living_cost, duxiu_index, current_user.id)
     
-    # 检查是否已存在同一个月的记录
-    for i, item in enumerate(data):
-        if item['date'] == date:
-            data[i] = record
-            break
-    else:
-        data.append(record)
-    
-    # 按日期排序
-    data.sort(key=lambda x: x['date'])
-    
-    # 保存数据
-    save_data(data)
+    # 加载用户记录
+    user_records = duxiu_store.load_user_records(current_user.id)
+    records_data = [record.to_dict() for record in user_records]
     
     # 生成图表
-    chart_data = generate_chart(data)
+    chart_data = generate_chart(records_data)
     
     return jsonify({
         'success': True, 
-        'data': data,
+        'data': records_data,
         'chart': chart_data
     })
 
 @app.route('/get_data')
+@login_required
 def get_data():
-    data = load_data()
-    chart_data = generate_chart(data)
+    # 加载用户记录
+    user_records = duxiu_store.load_user_records(current_user.id)
+    records_data = [record.to_dict() for record in user_records]
+    
+    # 生成图表
+    chart_data = generate_chart(records_data)
     
     return jsonify({
         'success': True, 
-        'data': data,
+        'data': records_data,
         'chart': chart_data
     })
 
 @app.route('/delete_record', methods=['POST'])
+@login_required
 def delete_record():
     date = request.form.get('date')
-    data = load_data()
     
-    # 删除指定日期的记录
-    data = [item for item in data if item['date'] != date]
+    # 删除用户特定记录
+    duxiu_store.delete_record(date, current_user.id)
     
-    # 保存数据
-    save_data(data)
+    # 加载用户记录
+    user_records = duxiu_store.load_user_records(current_user.id)
+    records_data = [record.to_dict() for record in user_records]
     
     # 生成图表
-    chart_data = generate_chart(data)
+    chart_data = generate_chart(records_data)
     
     return jsonify({
         'success': True, 
-        'data': data,
+        'data': records_data,
         'chart': chart_data
     })
 

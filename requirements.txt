@@ -4,3 +4,7 @@ WTForms
 Pillow
 matplotlib
 numpy
+Flask-Login
+Flask-SQLAlchemy
+Flask-Migrate
+email_validator

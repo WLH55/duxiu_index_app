@@ -14,18 +14,34 @@ document.addEventListener('DOMContentLoaded', function() {
         
         fetch('/add_record', {
             method: 'POST',
-            body: formData
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            credentials: 'same-origin'
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                if (response.status === 401) {
+                    // 未认证，重定向到登录页面
+                    window.location.href = '/login';
+                    throw new Error('请先登录');
+                }
+                throw new Error('网络请求失败');
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.success) {
                 updateUI(data);
                 showSuccessMessage('数据已保存！');
+            } else {
+                showErrorMessage(data.message || '保存失败！');
             }
         })
         .catch(error => {
             console.error('错误:', error);
-            showErrorMessage('保存数据时出错，请重试！');
+            showErrorMessage(error.message || '保存数据时出错，请重试！');
         });
     });
     
@@ -39,16 +55,34 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 加载数据函数
     function loadData() {
-        fetch('/get_data')
-            .then(response => response.json())
+        fetch('/get_data', {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            credentials: 'same-origin'
+        })
+            .then(response => {
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        // 未认证，重定向到登录页面
+                        window.location.href = '/login';
+                        throw new Error('请先登录');
+                    }
+                    throw new Error('网络请求失败');
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.success) {
                     updateUI(data);
+                } else {
+                    showErrorMessage(data.message || '获取数据失败！');
                 }
             })
             .catch(error => {
                 console.error('错误:', error);
-                showErrorMessage('加载数据时出错，请刷新页面！');
+                showErrorMessage(error.message || '加载数据时出错，请刷新页面！');
             });
     }
     
@@ -148,18 +182,34 @@ document.addEventListener('DOMContentLoaded', function() {
         
         fetch('/delete_record', {
             method: 'POST',
-            body: formData
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            credentials: 'same-origin'
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                if (response.status === 401) {
+                    // 未认证，重定向到登录页面
+                    window.location.href = '/login';
+                    throw new Error('请先登录');
+                }
+                throw new Error('网络请求失败');
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.success) {
                 updateUI(data);
                 showSuccessMessage('记录已删除！');
+            } else {
+                showErrorMessage(data.message || '删除失败！');
             }
         })
         .catch(error => {
             console.error('错误:', error);
-            showErrorMessage('删除记录时出错，请重试！');
+            showErrorMessage(error.message || '删除记录时出错，请重试！');
         });
     }
     
@@ -172,13 +222,51 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 显示成功消息
     function showSuccessMessage(message) {
-        // 简单的alert消息，可以改为更优雅的toast通知
-        alert(message);
+        // 创建Toast消息
+        showToast(message, 'success');
     }
     
     // 显示错误消息
     function showErrorMessage(message) {
-        // 简单的alert消息，可以改为更优雅的toast通知
-        alert(message);
+        // 创建Toast消息
+        showToast(message, 'danger');
+    }
+    
+    // 显示Toast消息
+    function showToast(message, type = 'primary') {
+        // 检查是否已存在toast容器
+        let toastContainer = document.querySelector('.toast-container');
+        if (!toastContainer) {
+            toastContainer = document.createElement('div');
+            toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+            document.body.appendChild(toastContainer);
+        }
+        
+        // 创建toast元素
+        const toastEl = document.createElement('div');
+        toastEl.className = `toast align-items-center text-white bg-${type} border-0`;
+        toastEl.setAttribute('role', 'alert');
+        toastEl.setAttribute('aria-live', 'assertive');
+        toastEl.setAttribute('aria-atomic', 'true');
+        
+        toastEl.innerHTML = `
+            <div class="d-flex">
+                <div class="toast-body">
+                    ${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        `;
+        
+        toastContainer.appendChild(toastEl);
+        
+        // 初始化toast
+        const toast = new bootstrap.Toast(toastEl, { delay: 3000 });
+        toast.show();
+        
+        // 监听隐藏事件以移除DOM元素
+        toastEl.addEventListener('hidden.bs.toast', function() {
+            toastEl.remove();
+        });
     }
 });

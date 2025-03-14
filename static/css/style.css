@@ -74,8 +74,78 @@ body {
     font-weight: bold;
 }
 
+/* 登录和注册表单样式 */
+.form-control:focus {
+    border-color: #4CAF50;
+    box-shadow: 0 0 0 0.25rem rgba(76, 175, 80, 0.25);
+}
+
+.invalid-feedback {
+    color: #d32f2f;
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+}
+
+.navbar {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 1rem;
+}
+
+.navbar-brand {
+    font-weight: bold;
+    color: #4CAF50 !important;
+}
+
+.nav-link {
+    color: #495057;
+}
+
+.nav-link:hover {
+    color: #4CAF50;
+}
+
+/* Toast通知样式 */
+.toast-container {
+    z-index: 1100;
+}
+
+.toast {
+    opacity: 1 !important;
+}
+
+/* 响应式调整 */
 @media (max-width: 768px) {
     .table-responsive {
         margin-bottom: 0;
     }
+    
+    .navbar-brand {
+        font-size: 1.1rem;
+    }
+}
+
+/* 认证相关页面样式 */
+.auth-container {
+    max-width: 450px;
+    margin: 2rem auto;
+}
+
+.auth-title {
+    color: #4CAF50;
+    margin-bottom: 1.5rem;
+    text-align: center;
+}
+
+.auth-switch {
+    text-align: center;
+    margin-top: 1rem;
+}
+
+.auth-switch a {
+    color: #4CAF50;
+    text-decoration: none;
+}
+
+.auth-switch a:hover {
+    text-decoration: underline;
 }
