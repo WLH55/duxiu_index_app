@@ -6,12 +6,13 @@ import os
 
 # 用户模型
 class User(UserMixin):
-    def __init__(self, id, username, email, password_hash):
+    def __init__(self, id, username, email, password_hash, is_admin=False):
         self.id = id
         self.username = username
         self.email = email
         self.password_hash = password_hash
         self.created_at = datetime.now()
+        self.is_admin = is_admin
     
     # 设置密码
     def set_password(self, password):
@@ -28,7 +29,8 @@ class User(UserMixin):
             'username': self.username,
             'email': self.email,
             'password_hash': self.password_hash,
-            'created_at': self.created_at.isoformat() if isinstance(self.created_at, datetime) else self.created_at
+            'created_at': self.created_at.isoformat() if isinstance(self.created_at, datetime) else self.created_at,
+            'is_admin': self.is_admin
         }
 
 # 用户数据存储类
@@ -56,7 +58,8 @@ class UserStore:
                         id=user_data['id'],
                         username=user_data['username'],
                         email=user_data['email'],
-                        password_hash=user_data['password_hash']
+                        password_hash=user_data['password_hash'],
+                        is_admin=user_data.get('is_admin', False)
                     )
                     if 'created_at' in user_data:
                         try:
@@ -130,6 +133,17 @@ class UserStore:
                 users[i] = user
                 self.save_users(users)
                 return True
+        return False
+    
+    # 设置用户为管理员
+    def set_admin(self, user_id, is_admin=True):
+        users = self.load_users()
+        user = self.get_user_by_id(user_id)
+        
+        if user:
+            user.is_admin = is_admin
+            self.update_user(user)
+            return True
         return False
 
 # 独秀指数记录模型

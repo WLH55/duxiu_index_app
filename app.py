@@ -12,6 +12,9 @@ from flask_login import LoginManager, login_user, logout_user, login_required, c
 from werkzeug.security import generate_password_hash, check_password_hash
 from forms import RegistrationForm, LoginForm
 from models import User, UserStore, DuxiuRecord, DuxiuStore
+from statistics import mean
+from pathlib import Path
+from functools import wraps
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'duxiu-index-secret'
@@ -23,6 +26,10 @@ login_manager.login_view = 'login'
 login_manager.login_message = '请先登录以访问此页面'
 login_manager.login_message_category = 'warning'
 
+# 调试信息 - 打印静态文件路径
+print(f"静态文件目录: {app.static_folder}")
+print(f"样式文件是否存在: {Path(app.static_folder) / 'css' / 'style.css'}")
+
 # 数据文件路径
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
 os.makedirs(DATA_DIR, exist_ok=True)
@@ -32,6 +39,17 @@ DATA_FILE = os.path.join(DATA_DIR, 'records.json')
 # 初始化用户存储和数据存储
 user_store = UserStore(USERS_FILE)
 duxiu_store = DuxiuStore(DATA_FILE)
+
+# 设置 wlh 用户为管理员
+def set_admin():
+    admin_username = 'wlh'
+    admin_user = user_store.get_user_by_username(admin_username)
+    if admin_user:
+        user_store.set_admin(admin_user.id)
+        print(f"已将用户 {admin_username} 设置为管理员")
+
+# 立即执行设置管理员
+set_admin()
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -222,6 +240,66 @@ def delete_record():
         'data': records_data,
         'chart': chart_data
     })
+
+# 检查是否是管理员的装饰器
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or not current_user.is_admin:
+            flash('您没有权限访问此页面', 'danger')
+            return redirect(url_for('index'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+# 管理员页面
+@app.route('/admin')
+@login_required
+@admin_required
+def admin():
+    # 获取所有用户
+    all_users = user_store.load_users()
+    
+    # 为每个用户添加记录数量
+    for user in all_users:
+        user_records = duxiu_store.load_user_records(user.id)
+        setattr(user, 'record_count', len(user_records))
+    
+    return render_template('admin.html', users=all_users)
+
+@app.route('/user/<user_id>')
+@login_required
+def user_detail(user_id):
+    # 获取指定用户
+    user = user_store.get_user_by_id(user_id)
+    if not user:
+        flash('用户不存在', 'danger')
+        return redirect(url_for('admin'))
+    
+    # 检查权限 - 只允许管理员或用户本人查看
+    if not current_user.is_admin and current_user.id != user_id:
+        flash('您没有权限查看其他用户的数据', 'danger')
+        return redirect(url_for('index'))
+    
+    # 获取用户记录
+    user_records = duxiu_store.load_user_records(user_id)
+    records_data = [record.to_dict() for record in user_records]
+    
+    # 计算平均独秀指数
+    avg_index = None
+    if records_data:
+        indices = [record['index'] for record in records_data]
+        avg_index = mean(indices)
+    
+    # 生成图表
+    chart_data = generate_chart(records_data)
+    
+    return render_template(
+        'user_detail.html',
+        user=user,
+        records=records_data,
+        avg_index=avg_index,
+        chart_data=chart_data
+    )
 
 if __name__ == '__main__':
     app.run(debug=True)
