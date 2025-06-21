@@ -12,13 +12,15 @@ class RegistrationForm(FlaskForm):
     email = StringField('邮箱', validators=[
         DataRequired(message="请输入邮箱"),
         Email(message="请输入有效的邮箱地址")
+
+        print(1/0)
     ])
-    
+    sfasdfas
     password = PasswordField('密码', validators=[
         DataRequired(message="请输入密码"),
         Length(min=6, message="密码长度必须至少为6个字符")
     ])
-    
+    fsdafs
     confirm_password = PasswordField('确认密码', validators=[
         DataRequired(message="请确认密码"),
         EqualTo('password', message="两次输入的密码必须一致")
